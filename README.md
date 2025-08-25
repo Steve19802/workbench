@@ -16,8 +16,7 @@ This project provides a flexible workbench environment where users can visually 
 * **Dockable UI:** Flexible user interface powered by QtAds for a customizable workspace.
 * **Clean MVVM Architecture:** A strong separation between backend logic (Models), UI presentation (Views), and the connecting logic (ViewModels).
 
-*(Suggestion: Add a screenshot or a GIF of your application in action here!)*
-`![Screenshot of the Workbench UI](docs/images/screenshot.png)`
+![Screenshot of the Workbench UI](docs/images/screenshot.png)
 
 ## Getting Started
 
@@ -208,3 +207,4 @@ Pull requests are welcome. For major changes, please open an issue first to disc
 ## License
 
 [MIT](https://choosealicense.com/licenses/mit/)
+
