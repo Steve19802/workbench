@@ -1,0 +1,50 @@
+
+/* See https://bugreports.qt.io/browse/QTBUG-89037 */
+QComboBox {
+  combobox-popup: 0;
+}
+
+CustomTitleBar > QLabel:!window {
+}
+
+TitleBarButton {
+  qproperty-normalColor: {{ foreground|color }};
+  qproperty-normalBackgroundColor: transparent;
+  qproperty-hoverColor: {{ foreground|color }};
+  qproperty-hoverBackgroundColor:{{ primary|color(state="button.hoverBackground") }};
+  qproperty-pressedColor: white;
+  qproperty-pressedBackgroundColor: rgb(54, 57, 65);
+}
+
+TitleBarButton#wndCloseButton {
+  qproperty-hoverBackgroundColor: red;
+}
+
+#tabsMenuButton::menu-indicator {
+  image: none;
+}
+
+ads--CDockWidgetTab {
+  border-style: solid; 
+  padding: 3px;
+  margin: 0px 6px 3px 0;
+  outline: none;
+  border-width: 0px;
+  border-radius: 0px;
+}
+
+ads--CDockWidgetTab[activeTab="true"] {
+  border-color: {{ primary|color }};
+  border-bottom-width: 2px;
+}
+
+ads--CDockWidgetTab[activeTab="true"] QLabel {
+  color: {{ primary|color }};
+}
+
+#tabCloseButton {
+}
+
+QGraphicsView { 
+  background-color: {{ background|color }}; 
+}

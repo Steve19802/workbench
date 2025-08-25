@@ -1,0 +1,22 @@
+# core requirements
+sounddevice == 0.5.2
+blinker == 1.9.0 
+dvg-ringbuffer == 1.1.0
+engineering-notation == 0.10.0
+interval-timer == 1.0.0
+numpy == 2.3.1
+scipy == 1.16.0
+
+
+# gui requirements
+pyside6 == 6.9.0
+pyqtdarktheme2 @git+https://github.com/Steve19802/PyQtDarkTheme.git@develop
+pyside6-qtads == 4.4.0
+pysidesix-frameless-window == 0.7.3
+pyqtgraph == 0.13.7
+nodegraphqt @ git+https://github.com/Steve19802/NodeGraphQt.git@develop
+qtawesome @ git+https://github.com/Steve19802/qtawesome.git@develop
+
+
+
+
