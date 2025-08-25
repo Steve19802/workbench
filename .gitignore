@@ -1,0 +1,41 @@
+# --- Bytecode and Caches ---
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# --- Virtual Environments ---
+# Standard names for virtual environment folders
+venv/
+.venv/
+env/
+.env/
+
+# --- IDE / Editor Files ---
+# VS Code
+.vscode/*
+# Optional: If you want to share specific settings with collaborators,
+# un-ignore them. For example, to share your linter settings:
+!/.vscode/settings.json
+
+# PyCharm
+.idea/
+
+# macOS
+.DS_Store
+
+# --- Packaging & Distribution ---
+# Folders created when you build a package
+build/
+dist/
+*.egg-info/
+wheels/
+
+# --- Testing & Code Coverage ---
+.pytest_cache/
+.tox/
+htmlcov/
+.coverage
+
+# --- Log files ---
+*.Log
