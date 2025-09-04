@@ -46,7 +46,7 @@ class FFTAnalyzer(Block):
         input_media_info = self.get_input_port("in").media_info
         output_media_info = MediaInfo()
         output_media_info.name = self.name
-        output_media_info.sample_rate = input_media_info.sample_rate / self._fft_size
+        output_media_info.samplerate = input_media_info.samplerate / self._fft_size
         output_media_info.dtype = (np.float64, input_media_info.channels_number)
         output_media_info.blocksize = self._fft_size // 2 + 1
         output_media_info.channels = [

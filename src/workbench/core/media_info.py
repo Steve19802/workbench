@@ -18,7 +18,7 @@ class ChannelInfo:
 class MediaInfo:
     def __init__(self) -> None:
         self.name = f"media-{uuid.uuid4()}"
-        self.sample_rate = np.nan
+        self.samplerate = np.nan
         self.channels = []
         self.dtype = (np.float64, 1)
         self.blocksize = np.nan
@@ -28,6 +28,6 @@ class MediaInfo:
 
     def __str__(self) -> str:
         return (
-            f"Media Name: {self.name}, samplerate: {self.sample_rate}, blocksize: {self.blocksize}, channels:\n +- "
+            f"Media Name: {self.name}, samplerate: {self.samplerate}, blocksize: {self.blocksize}, channels:\n +- "
             + "\n +- ".join(str(ch) for ch in self.channels)
         )

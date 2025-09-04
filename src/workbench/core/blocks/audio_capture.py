@@ -40,7 +40,7 @@ class AudioCapture(MediaBlock):
     def _update_media_info(self):
         media_info = MediaInfo()
         media_info.name = self.name
-        media_info.sample_rate = self._samplerate
+        media_info.samplerate = self._samplerate
         media_info.dtype = (np.float64, self._channels)
         media_info.blocksize = self._blocksize
         media_info.channels = [
