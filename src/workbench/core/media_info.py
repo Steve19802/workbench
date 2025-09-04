@@ -1,3 +1,4 @@
+from __future__ import annotations
 import uuid
 import numpy as np
 
@@ -25,6 +26,17 @@ class MediaInfo:
 
     def channels_number(self):
         return len(self.channels)
+
+    def copy(self) -> MediaInfo:
+        cpy = MediaInfo()
+        cpy.name = self.name
+        cpy.samplerate = self.samplerate
+        cpy.dtype = self.dtype
+        cpy.blocksize = self.blocksize
+        for ch in self.channels:
+            cpy.channels.append(ChannelInfo(ch.name, ch.dtype, ch.unit))
+
+        return cpy
 
     def __str__(self) -> str:
         return (
