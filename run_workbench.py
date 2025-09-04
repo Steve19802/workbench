@@ -1,4 +1,5 @@
 import sys
+import os
 
 # Make sure all necessary PySide6 modules are imported
 from PySide6.QtWidgets import QApplication
@@ -9,6 +10,10 @@ from workbench.utils.logger import configure_logger
 from workbench.utils.performance_monitor import (
     PerformanceMonitorService,
 )
+
+
+if sys.platform == "linux" and os.getenv("XDG_SESSION_TYPE") == "wayland":
+    os.environ["QT_QPA_PLATFORM"] = "xcb"
 
 
 def main():
