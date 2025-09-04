@@ -1,23 +1,28 @@
 from __future__ import annotations
 from enum import Enum
 import logging
+import numpy as np
+from math import ceil
 
 from blinker import Signal
+
+
+from workbench.contracts.enums import ScopeModes, TriggerSlope
+from workbench.core.helpers.media_ring_buffer import MediaRingBuffer
+from workbench.core.helpers.trigger_controller import TriggerController
 from ..media_info import MediaInfo
 from ..base_blocks import Block
 from ..helpers.scale_controller import ScaleController, ScaleMode
 
 LOGGER = logging.getLogger(__name__)
 
+LOGGER.setLevel("DEBUG")
+
 
 class Scope(Block):
     vertical_range_changed = Signal()
     vertical_scale_mode_changed = Signal()
-
-    class Modes(Enum):
-        TIME = "Time"
-        SPECTRUM = "Spectrum"
-        XY = "XY"
+    trigger_setting_changed = Signal()
 
     def __init__(self, name: str) -> None:
         super().__init__(name)
@@ -26,13 +31,39 @@ class Scope(Block):
 
         self.add_input_port(self.PORT_NAME)
 
-        self._mode: Scope.Modes = Scope.Modes.TIME
+        self._buffer = None
+        self._buffer_size = 0
+        self._timespan = 1
+        self._blocksize = 0
+        self._is_buffer_invalid = True
+
+        self._mode: ScopeModes = ScopeModes.TIME
         self._yscale_controller = ScaleController()
 
         self._yscale_controller.range_changed.connect(self._on_yscale_range_changed)
         self._yscale_controller.state_updated.connect(self._on_yscale_mode_changed)
 
+        self._trigger_controller = TriggerController()
+        self._trigger_controller.settings_changed.connect(
+            self._on_trigger_settings_changed
+        )
+
         self._channels_visibility = {}
+
+    def _create_buffer(self):
+        input_media_info = self.get_input_port("in").media_info
+        in_samplerate = input_media_info.samplerate
+        in_blocksize = input_media_info.blocksize
+        blocksize = ceil(self._timespan * in_samplerate)
+        buffer_size = (
+            in_blocksize * ceil(self._timespan * in_samplerate / in_blocksize)
+            + in_blocksize
+        )
+        LOGGER.debug(f"Creating buffer of {buffer_size} samples")
+        self._buffer_size = buffer_size
+        self._blocksize = blocksize
+        self._buffer = MediaRingBuffer(buffer_size, input_media_info.dtype, False)
+        self._is_buffer_invalid = False
 
     def _on_yscale_range_changed(self, sender, min, max):
         self.vertical_range_changed.send(self, min=min, max=max)
@@ -40,7 +71,13 @@ class Scope(Block):
     def _on_yscale_mode_changed(self, sender):
         self.vertical_scale_mode_changed.send(self)
 
+    def _on_trigger_settings_changed(self, sender):
+        self.trigger_setting_changed.send(self)
+
     def on_input_received(self, port_name: str, data) -> None:
+        if self._is_buffer_invalid:
+            self._create_buffer()
+
         # Get the indices of the currently visible channels.
         visible_indices = [
             idx
@@ -56,10 +93,25 @@ class Scope(Block):
             # Pass ONLY the filtered data to the scale controller.
             self._yscale_controller.update(visible_data)
 
+        self._buffer.extend(data)
+        if len(self._buffer) >= self._blocksize:
+            # extract required data from buffer
+            out_data = np.array(self._buffer[: self._blocksize])
+        else:
+            out_data = np.array(self._buffer)
+
         # Call the super method to pass the full dataset up
-        super().on_input_received(port_name, data)
+        super().on_input_received(port_name, out_data)
+
+        if len(self._buffer) >= self._buffer_size:
+            port = self.get_input_port(port_name)
+            blocksize = port.media_info.blocksize if port and port.media_info else 2048
+            self._buffer.reduce(blocksize)
 
     def on_format_received(self, port_name: str, media_info: MediaInfo) -> None:
+        # create infput buffer based on the received format
+        self._create_buffer()
+
         # Handle the channels visibility state
         updated_visibility = {}
         for channel_info in media_info.channels:
@@ -70,8 +122,11 @@ class Scope(Block):
 
         self._channels_visibility = updated_visibility
 
+        scope_media_info = media_info.copy()
+        scope_media_info.blocksize = self._blocksize
+
         # Let the base object to process the format and emit the corresponding signal
-        super().on_format_received(port_name, media_info)
+        super().on_format_received(port_name, scope_media_info)
 
     @property
     def mode(self) -> Scope.Modes:
@@ -133,6 +188,30 @@ class Scope(Block):
         # return list of channels name
         return [channel_info.name for channel_info in media_info.channels]
 
+    @property
+    def trigger_level(self) -> float:
+        return self._trigger_controller.level
+
+    @trigger_level.setter
+    def trigger_level(self, value: float):
+        self._trigger_controller.level = value
+
+    @property
+    def trigger_slope(self) -> TriggerSlope:
+        return self._trigger_controller.slope
+
+    @trigger_slope.setter
+    def trigger_slope(self, value: TriggerSlope):
+        self._trigger_controller.slope = value
+
+    @property
+    def trigger_channel(self) -> int:
+        return self._trigger_controller.channel
+
+    @trigger_channel.setter
+    def trigger_channel(self, value: int):
+        self._trigger_controller.channel = value
+
     def set_channel_visible(self, channel_name: str, visible: bool):
         """Allows the ViewModel to update the visibility of a channel."""
         if channel_name in self._channels_visibility:
@@ -146,3 +225,15 @@ class Scope(Block):
             LOGGER.error(
                 f"Attempted to set visibility for unknown channel: {channel_name}"
             )
+
+    @property
+    def time_span(self) -> float:
+        return self._timespan
+
+    @time_span.setter
+    def time_span(self, span: float):
+        LOGGER.debug(f"New timespan is {span}")
+        if span != self._timespan:
+            self._timespan = span
+            self.property_changed.send(self, name="time_span", value=span)
+            self._is_buffer_invalid = True

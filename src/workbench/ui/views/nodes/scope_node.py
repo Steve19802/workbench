@@ -1,5 +1,9 @@
+from enum import Enum
 import logging
 import NodeGraphQt
+from NodeGraphQt.base.node import NodePropWidgetEnum
+
+from workbench.contracts.enums import ScopeModes, ScaleMode, TriggerSlope
 
 LOGGER = logging.getLogger(__name__)
 
@@ -32,6 +36,78 @@ class ScopeNode(NodeGraphQt.BaseNode):
         for in_port_name in self._view_model.get_input_ports():
             self.add_input(in_port_name)
 
+        # self.add_enum_property("mode2", "Mode", Scope.Modes)
+
+        self.create_property(
+            "mode",
+            value=self._view_model.get_property("mode"),
+            items=ScopeModes,
+            widget_type=NodePropWidgetEnum.CUSTOM_BASE.value,
+            widget_tooltip="Select scope mode",
+        )
+
+        self.create_property(
+            "vertical_scale_mode",
+            value=self._view_model.get_property("vertical_scale_mode"),
+            items=ScaleMode,
+            widget_type=NodePropWidgetEnum.CUSTOM_BASE.value,
+            widget_tooltip="Select vertical axis scale mode",
+        )
+
+        self.create_property(
+            "vertical_scale_min",
+            value=self._view_model.get_property("vertical_scale_min"),
+            range=(-1000.0, 1000.0),
+            widget_type=NodePropWidgetEnum.QDOUBLESPIN_BOX.value,
+            widget_tooltip="Select vertical axis min value",
+        )
+
+        self.create_property(
+            "vertical_scale_max",
+            value=self._view_model.get_property("vertical_scale_max"),
+            range=(-1000.0, 1000.0),
+            widget_type=NodePropWidgetEnum.QDOUBLESPIN_BOX.value,
+            widget_tooltip="Select vertical axis max value",
+        )
+
+        self.create_property(
+            "channels_visibility",
+            value=self._view_model.get_property("channels_visibility"),
+            widget_type=NodePropWidgetEnum.QLINE_EDIT.value,
+            widget_tooltip="Select channels visibility",
+        )
+
+        self.create_property(
+            "trigger_channel",
+            value=self._view_model.get_property("trigger_channel"),
+            widget_type=NodePropWidgetEnum.QLINE_EDIT.value,
+            widget_tooltip="Select trigger channel",
+        )
+
+        self.create_property(
+            "trigger_level",
+            value=self._view_model.get_property("trigger_level"),
+            range=(-1000.0, 1000.0),
+            widget_type=NodePropWidgetEnum.QDOUBLESPIN_BOX.value,
+            widget_tooltip="Select trigger level",
+        )
+
+        self.create_property(
+            "trigger_slope",
+            value=self._view_model.get_property("trigger_slope"),
+            items=TriggerSlope,
+            widget_type=NodePropWidgetEnum.CUSTOM_BASE.value,
+            widget_tooltip="Select trigger slope",
+        )
+
+        self.create_property(
+            "time_span",
+            value=self._view_model.get_property("time_span"),
+            range=(0.0, 1000.0),
+            widget_type=NodePropWidgetEnum.QDOUBLESPIN_BOX.value,
+            widget_tooltip="Select scope time span",
+        )
+
     def get_view_model(self):
         return self._view_model
 
@@ -39,6 +115,8 @@ class ScopeNode(NodeGraphQt.BaseNode):
         print(f"set_property: {name}, {value}")
 
         super().set_property(name, value, push_undo)
+        if self._view_model:
+            self._view_model.update_property(name, value)
 
     def on_view_model_property_changed(self, name, value):
         if self.has_property(name):

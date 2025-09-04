@@ -37,6 +37,8 @@ from .dynamic_flow_layout import DynamicFlowLayout
 
 LOGGER = logging.getLogger(__name__)
 
+# LOGGER.setLevel("DEBUG")
+
 
 class Trigger:
     SLOPE_POSITIVE = "pos"
@@ -227,7 +229,7 @@ class GraphControllerWidget(QWidget):
         if xaxis_log:
             self._plot.setLogMode(x=True, y=False)
 
-        self._x = np.arange(block_size) / media_info.sample_rate
+        self._x = np.arange(block_size) / media_info.samplerate
         self._buf = MediaRingBuffer(
             capacity=2 * block_size, dtype=media_info.dtype, allow_overwrite=False
         )
@@ -462,17 +464,24 @@ class GraphControllerWidget(QWidget):
         LOGGER.debug(f"Port '{port}' received {len(data)} samples")
         self._update_perf.mark_start()
 
-        self._buf.extend(data)
+        # self._buf.extend(data)
 
-        if self._trigger_enabled:
-            x_idx = self._trigger.get_trigger_idx(self._buf)
-            self._buf.reduce(x_idx)
+        # if self._trigger_enabled:
+        #    x_idx = self._trigger.get_trigger_idx(self._buf)
+        #    self._buf.reduce(x_idx)
 
-        if len(self._buf) >= self._blocksize:
-            show_data = self._buf.reduce(self._blocksize)
-            # self._yrange.update(show_data, self._active_channels)
-            for i, ch in enumerate(self._active_channels):
-                self._curves[i].setData(self._x, show_data[:, ch])
+        # if len(self._buf) >= self._blocksize:
+        #    show_data = self._buf.reduce(self._blocksize)
+        # self._yrange.update(show_data, self._active_channels)
+        #    for i, ch in enumerate(self._active_channels):
+        #        self._curves[i].setData(self._x, show_data[:, ch])
+
+        x_data = data["x_data"]
+        y_data = data["y_data"]
+        for i, ch in enumerate(self._active_channels):
+            self._curves[i].setData(x_data, y_data[:, ch])
+
+        self._plot.setLimits(xMin=np.min(x_data), xMax=np.max(x_data))
 
         self._update_perf.mark_stop()
 
