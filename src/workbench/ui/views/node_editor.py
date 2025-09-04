@@ -1,6 +1,10 @@
 import logging
 import NodeGraphQt
 from NodeGraphQt.base.graph import NodeGraph
+from NodeGraphQt.base.node import NodePropWidgetEnum
+from NodeGraphQt.custom_widgets.properties_bin.node_property_factory import (
+    NodePropertyWidgetFactory,
+)
 from PySide6.QtCore import Slot
 from PySide6.QtWidgets import (
     QMessageBox,
@@ -10,6 +14,8 @@ from PySide6.QtWidgets import (
 from pathlib import Path
 
 import inspect
+
+from workbench.ui.views.widgets.enum_combo_box import EnumComboBox
 from . import nodes
 from .nodes.node_editor_view_model import NodeEditorViewModel
 from ..node_factory import NodeFactory
@@ -42,6 +48,11 @@ class NodeEditorWidget(QWidget):
         self.factory = NodeFactory(dock_manager=self._dock_manager)
         # Create a node graph instance
         self.graph = CustomNodeGraph()
+
+        node_property_widget_factory = NodePropertyWidgetFactory.instance()
+        node_property_widget_factory.register_property_widget_type(
+            NodePropWidgetEnum.CUSTOM_BASE.value, EnumComboBox
+        )
 
         # gl_widget = QOpenGLWidget()
         # self.graph.viewer().setViewport(gl_widget)
