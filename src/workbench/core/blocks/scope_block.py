@@ -25,13 +25,13 @@ LOGGER.setLevel("DEBUG")
 @register_block
 @define_ports(inputs=["in"])
 class Scope(Block):
-    vertical_range_changed = Signal()
-    vertical_scale_mode_changed = Signal()
-    trigger_setting_changed = Signal()
-
+    
     def __init__(self, name: str) -> None:
         super().__init__(name)
 
+        self.vertical_range_changed = Signal()
+        self.vertical_scale_mode_changed = Signal()
+        self.trigger_setting_changed = Signal()
 
         self.add_input_port(self.PORT_NAME)
         self.PORT_NAME = "in"
