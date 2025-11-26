@@ -6,12 +6,16 @@ from ..helpers.media_ring_buffer import MediaRingBuffer
 from interval_timer import IntervalTimer
 from ..media_blocks import MediaBlock
 from ..media_info import MediaInfo, ChannelInfo
+from ..helpers.auto_coerce_enum import auto_coerce_enum
+from ..helpers.registry import register_block
+from ..helpers.define_port_decorator import define_ports
 
 import logging
 
 LOGGER = logging.getLogger(__name__)
 
-
+@register_block
+@define_ports(outputs=["out"])
 class SignalGenerator(MediaBlock):
     def __init__(
         self,
@@ -39,7 +43,7 @@ class SignalGenerator(MediaBlock):
         self._params_changed = False
 
         # Ports configuration
-        self.add_output_port("out")
+    def init_ports(self):
         self._update_media_info()
         self.set_port_format("out", self._media_info)
 
