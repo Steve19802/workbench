@@ -1,18 +1,18 @@
 from enum import Enum
 
 
-class ScopeModes(Enum):
+class ScopeModes(str,Enum):
     TIME = "Time"
     SPECTRUM = "Spectrum"
     XY = "XY"
 
 
-class ScaleMode(Enum):
+class ScaleMode(str,Enum):
     MANUAL = "Manual"
     AUTOMATIC = "Automatic"
     AUTO_RANGE = "Auto Range"
 
 
-class TriggerSlope(Enum):
+class TriggerSlope(str,Enum):
     POSITIVE = "Positive"
     NEGATIVE = "Negative"
