@@ -1,5 +1,7 @@
 import logging
 from .base_blocks import Block
+from .helpers.registry import BLOCK_REGISTRY
+from enum import Enum
 
 LOGGER = logging.getLogger(__name__)
 
@@ -135,3 +137,126 @@ class ProcessingEngine:
             producer.stop()
 
         self._is_running = False
+
+
+    def _get_block_properties(self, block) -> dict:
+        """
+        Returns a list of all @property names defined in a class and its ancestors.
+        """
+        properties = {}
+        cls = block.__class__
+        for base_cls in cls.__mro__:
+            for name, value in base_cls.__dict__.items():
+                if isinstance(value, property) and name not in properties:
+                    # Check if it's a property flagges as not_serializable
+                    if hasattr(value.fget, "not_serializable"):
+                        continue
+                    # Invoke the property getter
+                    prop_value = value.__get__(block, type(block))
+                    
+                    # If it's an Enum we serialize it's value
+                    if isinstance(prop_value, Enum):
+                        prop_value = prop_value.value
+                    
+                    # Add propery name and value
+                    properties[name] = prop_value
+        return properties
+
+    def serialize(self) -> dict:
+        LOGGER.debug("Serializing processing engine state...")
+        ser_obj = {}
+        nodes_data = []
+        connections_data = []
+
+        for block_id, block in self._blocks.items():
+            # 1. Save Block Info
+            nodes_data.append({
+                "id": block_id,
+                "type": type(block).__name__, 
+                "properties": self._get_block_properties(block)
+            })
+            
+            # 2. Save its Input Connections
+            for in_port_key in block.get_input_ports():
+                in_port = block.get_input_port(in_port_key)
+                source_port = in_port.get_source_port()
+                if source_port:
+                    source_block = source_port.get_parent_block()
+                    source_block_id = source_block.id
+                    
+                    connections_data.append({
+                        "from_node_id": source_block_id,
+                        "from_port": source_port.name,
+                        "to_node_id": block_id,
+                        "to_port": in_port.name,
+                    })
+
+        ser_obj = {
+            "nodes": nodes_data,
+            "connections": connections_data
+        }
+        LOGGER.info(ser_obj)
+        return ser_obj
+    
+    def deserialize(self, data: dict, blocks=True, connections=True):
+        """
+        Deserializes an engine state from a dictionary,
+        re-creating all blocks and connections.
+        
+        Requires the engine to be initialized with a 'block_registry'.
+        """
+        if self._is_running:
+            LOGGER.error("Cannot deserialize while engine is running.")
+            return
+
+        LOGGER.debug("Deserializing processing engine state...")
+
+        nodes_data = data.get("nodes", [])
+        connections_data = data.get("connections", [])
+
+        if blocks:
+            self.clear_all_blocks()
+            LOGGER.debug(f"Found {len(nodes_data)} blocks")
+            # --- 1. Create all block instances ---
+            for node_info in nodes_data:
+                block_type_str = node_info.get("type")
+                block_id = node_info.get("id")
+                properties = node_info.get("properties", {})
+
+                LOGGER.debug(f"Creating block. type: {block_type_str}, id: {block_id}, properties: {properties}")
+                
+                if not block_type_str or not block_id:
+                    LOGGER.warning("Skipping invalid node data.")
+                    continue
+                    
+                block_class = BLOCK_REGISTRY.get(block_type_str)
+                
+                if block_class:
+                    try:
+                        # Create the block (assumes 'name' is in properties)
+                        block_name = properties.get("name", block_type_str)
+                        block = block_class(name=block_name)
+                        LOGGER.debug(f"  block instance: {block} type: {type(block)}")
+                        
+                        # Set all saved properties
+                        for prop, val in properties.items():
+                            setattr(block, prop, val) # This uses the setter
+                            
+                        # Add to the engine
+                        self.add_block(block, block_id)
+                    except Exception as e:
+                        LOGGER.error(f"Failed to create block '{block_type_str}' (ID: {block_id}): {e}")
+                else:
+                    LOGGER.error(f"Unknown block type '{block_type_str}'. Not found in registry.")
+
+        if connections:
+            # --- 2. Connect the blocks ---
+            for conn_info in connections_data:
+                self.connect_ports(
+                    conn_info.get("from_node_id"),
+                    conn_info.get("from_port"),
+                    conn_info.get("to_node_id"),
+                    conn_info.get("to_port"),
+                )
+            
+        LOGGER.info(f"Deserialization complete. Loaded {len(self._blocks)} blocks.")
