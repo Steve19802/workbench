@@ -2,13 +2,92 @@ from enum import Enum
 import logging
 import NodeGraphQt
 from NodeGraphQt.base.node import NodePropWidgetEnum
-
+from .base_node import mirror_ports, BaseNode
+from workbench.core.blocks import Scope
 from workbench.contracts.enums import ScopeModes, ScaleMode, TriggerSlope
 
 LOGGER = logging.getLogger(__name__)
 
+@mirror_ports(Scope)
+class ScopeNode(BaseNode):
+    """
+    A node for representing a Scope / Graph node.
+    """
 
-class ScopeNode(NodeGraphQt.BaseNode):
+    # Unique node identifier.
+    __identifier__ = "AudioBlocks"
+
+    # Set the default node name.
+    NODE_NAME = "Scope"
+
+    CUSTOM_PROPERTIES = {
+        "mode": {
+            "default_value": "",
+            "default_items": ScopeModes,
+            "widget_type": NodePropWidgetEnum.CUSTOM_BASE.value,
+            "widget_tooltip": "Select scope mode",
+        },
+        "vertical_scale_mode": {
+            "default_value": "",
+            "default_items": ScaleMode,
+            "widget_type": NodePropWidgetEnum.CUSTOM_BASE.value,
+            "widget_tooltip": "Select vertical axis scale mode",
+        },
+        "vertical_scale_min": {
+            "range": (-1000.0, 1000.0),
+            "default_value": -1.0,
+            "widget_type": NodePropWidgetEnum.QDOUBLESPIN_BOX.value,
+            "widget_tooltip": "Select vertical axis min value",
+        },
+        "vertical_scale_max": {
+            "range": (-1000.0, 1000.0),
+            "default_value": 1.0,
+            "widget_type": NodePropWidgetEnum.QDOUBLESPIN_BOX.value,
+            "widget_tooltip": "Select vertical axis max value",
+        },
+        "channels_visibility": {
+            "default_value": "",
+            "widget_type": NodePropWidgetEnum.QLINE_EDIT.value,
+            "widget_tooltip": "Select channels visibility",
+        },
+        "trigger_channel": {
+            "default_value": "",
+            "widget_type": NodePropWidgetEnum.QLINE_EDIT.value,
+            "widget_tooltip": "Select trigger channel",
+        },
+        "trigger_level": {
+            "range": (-1000.0, 1000.0),
+            "default_value": 0.0,
+            "widget_type": NodePropWidgetEnum.QDOUBLESPIN_BOX.value,
+            "widget_tooltip": "Select trigger level",
+        },
+        "trigger_slope": {
+            "default_value": "",
+            "default_items": TriggerSlope,
+            "widget_type": NodePropWidgetEnum.CUSTOM_BASE.value,
+            "widget_tooltip": "Select trigger slope",
+        },
+        "time_span": {
+            "range": (0.0, 1000.0),
+            "default_value": 1.0,
+            "widget_type": NodePropWidgetEnum.QDOUBLESPIN_BOX.value,
+            "widget_tooltip": "Select time span to visualize",
+        },
+    }
+
+    def on_double_clicked(self):
+        if self._view_model:
+            self._view_model.show_window()
+
+    def on_delete(self):
+        LOGGER.debug("Deleting node")
+        if self._view_model:
+            self._view_model.cleanup()
+
+
+
+
+class ScopeNode2(NodeGraphQt.BaseNode):
     """
     A node for representing a Scope / Graph node.
     """
