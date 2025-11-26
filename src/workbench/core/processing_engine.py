@@ -10,15 +10,17 @@ class ProcessingEngine:
         self._producers = []
         self._is_running = False
 
-    def add_block(self, block: Block, block_id):
+    def add_block(self, block: Block, block_id=None):
         if self._is_running:
             LOGGER.error(f"Can not add block {block_id} while the engine is running")
             return
 
-        LOGGER.debug(f"Adding block {block_id}")
+        id = block_id if block_id is not None else block.id
+        LOGGER.debug(f"Adding block with id: {id}")
         self._blocks[block_id] = block
         if block.is_producer():
             self._producers.append(block)
+        block.id = id
 
     def remove_block(self, block_id):
         if self._is_running:
