@@ -2,8 +2,11 @@ import logging
 import numpy as np
 from PySide6.QtCore import Signal, Slot
 
+from workbench.contracts.enums import ScopeModes, TriggerSlope
 from workbench.core.blocks.scope_block import Scope
 from .node_viewmodel import NodeViewModel
+
+import traceback
 
 LOGGER = logging.getLogger(__name__)
 
@@ -16,6 +19,8 @@ class ScopeViewModel(NodeViewModel):
 
     def __init__(self, model: Scope, dock_widget):
         super().__init__(model)
+
+        LOGGER.info(f"model: {model}")
 
         self._dock_widget = dock_widget
 
@@ -42,6 +47,25 @@ class ScopeViewModel(NodeViewModel):
 
         self.view_input_format_changed.emit(port_name, media_info)
 
+    def _generate_x_axis(self, data_len):
+
+        # Generate the corresponding time vector (x-axis)
+        if self.model.mode == ScopeModes.TIME:
+            duration = float(data_len - 1) / (
+                self._media_info.samplerate if self._media_info else 1
+            )
+            x_data = np.linspace(0, duration, num=data_len)
+            self._last_data_length = data_len
+        elif self.model.mode == ScopeModes.SPECTRUM:
+            nyquist = self._media_info.metadata.get('nyquist', 24000.0)
+            x_data = np.linspace(0, nyquist, num=data_len)
+        else:
+            LOGGER.error(f"{self.model.mode} NOT IMPLEMENTED!!!")
+
+
+        self._last_xdata = x_data
+        
+
     def on_model_data_received(self, sender, **kwargs):
         port_name = kwargs.get("port_name")
         data = kwargs.get("data")
@@ -51,14 +75,16 @@ class ScopeViewModel(NodeViewModel):
         if data is None:
             return
 
+        #LOGGER.info(f"port_name: {port_name}, data_len: {np.shape(data)}, data: {data}")
         if self._last_data_length != data_len:
             # Generate the corresponding time vector (x-axis)
-            duration = float(data_len) / (
-                self._media_info.samplerate if self._media_info else 1
-            )
-            x_data = np.linspace(0, duration, num=data_len)
-            self._last_data_length = data_len
-            self._last_xdata = x_data
+            #duration = float(data_len - 1) / (
+            #    self._media_info.samplerate if self._media_info else 1
+            #)
+            #x_data = np.linspace(0, duration, num=data_len)
+            #self._last_data_length = data_len
+            #self._last_xdata = x_data
+            self._generate_x_axis(data_len)
 
         # Prepare payload for sending to the view
         payload = {"x_data": self._last_xdata, "y_data": data}
