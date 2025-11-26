@@ -2,6 +2,7 @@ from __future__ import annotations
 import uuid
 import numpy as np
 
+from typing import ClassVar
 
 class ChannelInfo:
     def __init__(self, name=None, dtype=np.float64, unit=None) -> None:
@@ -27,7 +28,7 @@ class MediaInfo:
     def channels_number(self):
         return len(self.channels)
 
-    def copy(self) -> MediaInfo:
+    def copy(self) -> ClassVar["MediaInfo"]:
         cpy = MediaInfo()
         cpy.name = self.name
         cpy.samplerate = self.samplerate
