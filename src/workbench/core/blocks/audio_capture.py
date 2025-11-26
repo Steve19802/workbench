@@ -2,11 +2,16 @@ import sounddevice as sd
 import numpy as np
 from ..media_info import MediaInfo, ChannelInfo
 from ..media_blocks import MediaBlock
+from ..helpers.not_serializable_decorator import not_serializable
+from ..helpers.registry import register_block
+from ..helpers.define_port_decorator import define_ports
 import logging
 
 LOGGER = logging.getLogger(__name__)
 
 
+@register_block
+@define_ports(outputs=["out"])
 class AudioCapture(MediaBlock):
     def __init__(
         self,
@@ -34,7 +39,8 @@ class AudioCapture(MediaBlock):
         self._capture_stream = None
 
         # Ports configuration
-        self.add_output_port("out")
+    
+    def init_ports(self):
         self._update_media_info()
 
     def _update_media_info(self):
@@ -81,6 +87,7 @@ class AudioCapture(MediaBlock):
         return sd.query_devices()
 
     @property
+    @not_serializable()
     def devices(self):
         return sd.query_devices()
 
