@@ -82,5 +82,6 @@ class InputPort(Port):
 
     def _on_format_received(self, sender, **kwargs) -> None:
         data = kwargs.get("media_info")
-        self.media_info = data
-        self.owner.on_format_received(self.name, data)
+        if data is not None:
+            self.media_info = data
+            self.owner.on_format_received(self.name, data)
