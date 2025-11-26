@@ -3,7 +3,7 @@ import numpy as np
 from enum import Enum
 from threading import Lock
 from .port import InputPort, OutputPort
-
+from .helpers.not_serializable_decorator import not_serializable
 import logging
 
 LOGGER = logging.getLogger(__name__)
@@ -29,9 +29,11 @@ class Block:
         pass
 
     @property
+    @not_serializable() # we hide it becasue it has a different treatment 
     def id(self):
         """The id property."""
         return self._id
+    
     @id.setter
     def id(self, value):
         self._id = value
