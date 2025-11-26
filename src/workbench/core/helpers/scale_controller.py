@@ -15,11 +15,12 @@ class ScaleController:
     Emits a PySide6 Signal when the range should be updated.
     """
 
-    # It will emit two float arguments: min_val and max_val.
-    range_changed = Signal()
-    state_updated = Signal()
-
+    
     def __init__(self):
+        # It will emit two float arguments: min_val and max_val.
+        self.range_changed = Signal()
+        self.state_updated = Signal()
+
         # --- Internal State ---
         self._mode = ScaleMode.AUTOMATIC
         self._manual_min = -1.0
