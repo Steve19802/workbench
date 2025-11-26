@@ -9,7 +9,6 @@ import logging
 
 LOGGER = logging.getLogger(__name__)
 
-
 @register_block
 @define_ports(outputs=["out"])
 class AudioCapture(MediaBlock):
@@ -38,7 +37,10 @@ class AudioCapture(MediaBlock):
         self._media_info = None
         self._capture_stream = None
 
+        self._capture_channels = list(range(channels))
+
         # Ports configuration
+        #self.add_output_port("out")
     
     def init_ports(self):
         self._update_media_info()
@@ -58,12 +60,12 @@ class AudioCapture(MediaBlock):
         self.set_port_format("out", self._media_info)
 
     def _capture_callback(self, indata, frame, time, status):
-        self.send_port_data("out", self._calibration_factor * indata)
+        self.send_port_data("out", self._calibration_factor * indata[:,self._capture_channels])
 
     def on_start(self):
         self._capture_stream = sd.InputStream(
             device=self._device,
-            channels=self._channels,
+            channels=max(self._capture_channels)+1,
             blocksize=self._blocksize,
             samplerate=self._samplerate,
             callback=self._capture_callback,
@@ -75,6 +77,7 @@ class AudioCapture(MediaBlock):
     def on_stop(self):
         if self._capture_stream:
             self._capture_stream.stop()
+            self._capture_stream.close()
 
         return True
 
@@ -126,3 +129,17 @@ class AudioCapture(MediaBlock):
     def calibration_factor(self, factor: float):
         self._calibration_factor = float(factor)
         self.on_property_changed("calibration_factor", factor)
+
+    @property
+    def capture_channels(self):
+        LOGGER.info(f"capture_channels: {self._capture_channels}")
+        return self._capture_channels
+
+    @capture_channels.setter
+    def capture_channels(self, channels):
+        if type(channels) == str:
+            channels = [int(ch) for ch in channels.split(", ")]
+            channels.sort()
+        LOGGER.info(f"Capturing channels: {channels}")
+        self._capture_channels = channels
+        self.channels = len(channels)
