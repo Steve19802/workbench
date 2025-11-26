@@ -55,6 +55,12 @@ class ProcessingEngine:
             
         self._blocks.clear()
         self._producers.clear()
+        
+    def get_block_by_id(self, block_id: str) -> Block | None:
+        """Helper to safely get a block."""
+        LOGGER.debug(f"Searching for {block_id} in Blocks: {self._blocks.keys()}")
+        return self._blocks.get(block_id)
+
     def _get_validated_ports(self, source_id, source_port, dest_id, dest_port):
         """Helper to find and validate blocks and ports. Returns (in_port, out_port) or (None, None)."""
         if source_id not in self._blocks or dest_id not in self._blocks:
