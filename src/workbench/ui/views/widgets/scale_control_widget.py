@@ -137,6 +137,8 @@ class ScaleControlWidget(QWidget):
     @Slot()
     def on_view_model_state_updated(self):
         """Pulls all state from the ViewModel and updates the UI."""
+        if self.sender() != self.view_model:
+            return
 
         LOGGER.debug("updating state from view_model")
         # Update which mode button is checked
