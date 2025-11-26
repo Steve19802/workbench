@@ -33,7 +33,6 @@ class Scope(Block):
         self.vertical_scale_mode_changed = Signal()
         self.trigger_setting_changed = Signal()
 
-        self.add_input_port(self.PORT_NAME)
         self.PORT_NAME = "in"
 
         self._buffer = None
@@ -56,6 +55,24 @@ class Scope(Block):
         self._channels_visibility = {}
 
     def _create_buffer(self):
+        mode_handlers = {
+            ScopeModes.TIME: self._create_buffer_time_mode,
+            ScopeModes.SPECTRUM: self._create_buffer_spectrum_mode,
+            ScopeModes.XY: self._create_buffer_xy_mode,
+        }
+
+        input_media_info = self.get_input_port("in").media_info
+        if input_media_info is None:
+            LOGGER.warning(f"Unable to create buffer. Missing input port media information")
+            return 
+
+        create_handler = mode_handlers.get(self._mode, None)
+        if create_handler is not None:
+            create_handler()
+        else:
+            LOGGER.error(f"Invalid Mode")
+
+    def _create_buffer_time_mode(self):
         input_media_info = self.get_input_port("in").media_info
         in_samplerate = input_media_info.samplerate
         in_blocksize = input_media_info.blocksize
@@ -64,11 +81,41 @@ class Scope(Block):
             in_blocksize * ceil(self._timespan * in_samplerate / in_blocksize)
             + in_blocksize
         )
-        LOGGER.debug(f"Creating buffer of {buffer_size} samples")
+        LOGGER.debug(f"Creating buffer of {buffer_size} samples. dtype = {input_media_info.dtype}")
         self._buffer_size = buffer_size
         self._blocksize = blocksize
         self._buffer = MediaRingBuffer(buffer_size, input_media_info.dtype, False)
         self._is_buffer_invalid = False
+
+    def _create_buffer_spectrum_mode(self):
+        input_media_info = self.get_input_port("in").media_info
+        in_samplerate = input_media_info.samplerate
+        in_blocksize = input_media_info.blocksize
+        blocksize = in_blocksize
+        buffer_size = in_blocksize 
+   
+        LOGGER.debug(f"Creating buffer of {buffer_size} samples. dtype = {input_media_info.dtype}")
+        self._buffer_size = buffer_size
+        self._blocksize = blocksize
+        self._buffer = MediaRingBuffer(buffer_size, input_media_info.dtype, False)
+        self._is_buffer_invalid = False
+
+    def _create_buffer_xy_mode(self):
+        input_media_info = self.get_input_port("in").media_info
+        in_samplerate = input_media_info.samplerate
+        in_blocksize = input_media_info.blocksize
+        blocksize = ceil(self._timespan * in_samplerate)
+        buffer_size = (
+            in_blocksize * ceil(self._timespan * in_samplerate / in_blocksize)
+            + in_blocksize
+        )
+        LOGGER.debug(f"Creating buffer of {buffer_size} samples. dtype = {input_media_info.dtype}")
+        self._buffer_size = buffer_size
+        self._blocksize = blocksize
+        self._buffer = MediaRingBuffer(buffer_size, input_media_info.dtype, False)
+        self._is_buffer_invalid = False
+
+
 
     def _on_yscale_range_changed(self, sender, min, max):
         self.vertical_range_changed.send(self, min=min, max=max)
@@ -114,6 +161,10 @@ class Scope(Block):
             self._buffer.reduce(blocksize)
 
     def on_format_received(self, port_name: str, media_info: MediaInfo) -> None:
+
+        if media_info.metadata.get("domain") == "frequency":
+            self.mode = ScopeModes.SPECTRUM
+
         # create infput buffer based on the received format
         self._create_buffer()
 
@@ -138,8 +189,21 @@ class Scope(Block):
         return self._mode
 
     @mode.setter
-    def mode(self, new_mode: Scope.Modes):
+    @auto_coerce_enum(ScopeModes)
+    def mode(self, new_mode: ScopeModes):
         self._mode = new_mode
+        self._create_buffer()
+
+
+        input_media_info = self.get_input_port("in").media_info
+        if input_media_info is not None:
+            scope_media_info = self.get_input_port("in").media_info.copy()
+            scope_media_info.blocksize = self._blocksize
+
+            # Let the base object to process the format and emit the corresponding signal
+            super().on_format_received("in", scope_media_info)
+
+
         self.on_property_changed("mode", new_mode)
 
     @property
@@ -147,6 +211,7 @@ class Scope(Block):
         return self._yscale_controller.mode
 
     @vertical_scale_mode.setter
+    @auto_coerce_enum(ScaleMode)
     def vertical_scale_mode(self, new_mode: ScaleMode) -> None:
         self._yscale_controller.mode = new_mode
         self.on_property_changed("vertical_scale_mode", new_mode)
@@ -176,7 +241,12 @@ class Scope(Block):
         """Returns a copy of the current channels visibility map."""
         return self._channels_visibility.copy()
 
+    @channels_visibility.setter
+    def channels_visibility(self, visibility: dict):
+        self._channels_visibility = visibility.copy()
+
     @property
+    @not_serializable()
     def channel_names(self) -> list:
         """Returns the ordered list of channel names."""
 
