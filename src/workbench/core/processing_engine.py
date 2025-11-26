@@ -42,6 +42,19 @@ class ProcessingEngine:
             # Also remove it from the list of producers
             self._producers.remove(block_to_remove)
 
+    def clear_all_blocks(self):
+        """Removes all blocks from the engine."""
+        if self._is_running:
+            LOGGER.error("Cannot clear blocks while engine is running.")
+            return
+            
+        LOGGER.debug("Clearing all blocks from engine.")
+        # Iterate over a copy of the keys since we're modifying the dict
+        for block_id in list(self._blocks.keys()):
+            self.remove_block(block_id)
+            
+        self._blocks.clear()
+        self._producers.clear()
     def _get_validated_ports(self, source_id, source_port, dest_id, dest_port):
         """Helper to find and validate blocks and ports. Returns (in_port, out_port) or (None, None)."""
         if source_id not in self._blocks or dest_id not in self._blocks:
