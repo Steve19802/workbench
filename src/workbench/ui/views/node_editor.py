@@ -16,6 +16,7 @@ from pathlib import Path
 import inspect
 
 from workbench.ui.views.widgets.enum_combo_box import EnumComboBox
+from workbench.ui.views.widgets.multiselect_list_widget import MultiSelectListWidget
 from . import nodes
 from .nodes.node_editor_view_model import NodeEditorViewModel
 from ..node_factory import NodeFactory
@@ -43,15 +44,18 @@ class NodeEditorWidget(QWidget):
         super().__init__(parent)
 
         self._dock_manager = dock_manager
-        self._view_model = NodeEditorViewModel(dock_manager)
-
-        self.factory = NodeFactory(dock_manager=self._dock_manager)
-        # Create a node graph instance
         self.graph = CustomNodeGraph()
+        self._view_model = NodeEditorViewModel(dock_manager, self.graph)
+
+        #self.factory = NodeFactory(dock_manager=self._dock_manager)
+        # Create a node graph instance
 
         node_property_widget_factory = NodePropertyWidgetFactory.instance()
         node_property_widget_factory.register_property_widget_type(
             NodePropWidgetEnum.CUSTOM_BASE.value, EnumComboBox
+        )
+        node_property_widget_factory.register_property_widget_type(
+            NodePropWidgetEnum.CUSTOM_BASE.value+1, MultiSelectListWidget
         )
 
         # gl_widget = QOpenGLWidget()
@@ -186,6 +190,12 @@ class NodeEditorWidget(QWidget):
     def stop_processing(self):
         LOGGER.debug("Stopping processing engine")
         self._view_model.stop_engine()
+
+    def save_graph(self, *args, **kwargs):
+        return self._view_model.save_graph(*args, **kwargs)
+
+    def open_graph(self, *args, **kwargs):
+        return self._view_model.open_graph(*args, **kwargs)
 
 
 if __name__ == "__main__":
