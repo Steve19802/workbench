@@ -34,6 +34,10 @@ class ProcessingEngine:
         LOGGER.debug(f"Removing block {block_id}")
         block_to_remove = self._blocks.pop(block_id)
 
+        # Disconnect ports
+        for in_port in block_to_remove.get_input_ports():
+            block_to_remove.get_input_port(in_port).disconnect()
+
         if block_to_remove.is_producer():
             # Also remove it from the list of producers
             self._producers.remove(block_to_remove)
