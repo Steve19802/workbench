@@ -25,6 +25,9 @@ class Block:
         self.data_received = Signal()
         self.input_format_changed = Signal()
 
+    def init_ports(self):
+        pass
+
     @property
     def id(self):
         """The id property."""
