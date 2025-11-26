@@ -10,6 +10,9 @@ class Port:
         self.owner = owner
         self.type = "u"
 
+    def get_parent_block(self):
+        return self.owner
+
     def __repr__(self) -> str:
         return f"{self.name}.{self.type}@{self.owner.name}"
 
@@ -62,6 +65,9 @@ class InputPort(Port):
 
         # Notify output_port that we are connected
         self._connected_port.connect_signal.send(self, connected_port=self)
+
+    def get_source_port(self):
+        return self._connected_port
 
     def disconnect(self) -> None:
         if self._connected_port:
