@@ -13,12 +13,17 @@ from workbench.core.helpers.trigger_controller import TriggerController
 from ..media_info import MediaInfo
 from ..base_blocks import Block
 from ..helpers.scale_controller import ScaleController, ScaleMode
+from ..helpers.auto_coerce_enum import auto_coerce_enum
+from ..helpers.not_serializable_decorator import not_serializable
+from ..helpers.registry import register_block
+from ..helpers.define_port_decorator import define_ports
 
 LOGGER = logging.getLogger(__name__)
 
 LOGGER.setLevel("DEBUG")
 
-
+@register_block
+@define_ports(inputs=["in"])
 class Scope(Block):
     vertical_range_changed = Signal()
     vertical_scale_mode_changed = Signal()
@@ -27,9 +32,9 @@ class Scope(Block):
     def __init__(self, name: str) -> None:
         super().__init__(name)
 
-        self.PORT_NAME = "in"
 
         self.add_input_port(self.PORT_NAME)
+        self.PORT_NAME = "in"
 
         self._buffer = None
         self._buffer_size = 0
