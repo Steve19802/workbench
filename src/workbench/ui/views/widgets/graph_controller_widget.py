@@ -452,15 +452,20 @@ class GraphControllerWidget(QWidget):
 
     @Slot(float, float)
     def on_yrange_changed(self, min_val, max_val):
-        self._plot.setYRange(min_val, max_val)
+        if self.sender() == self._view_model:
+            self._plot.setYRange(min_val, max_val)
 
     @Slot(str, object)
     def on_format_changed(self, port, media_info):
-        LOGGER.debug(f"Port '{port}' format changed: '{media_info}'")
-        self.configure_graph(media_info, False)
+        if self.sender() == self._view_model:
+            LOGGER.debug(f"Port '{port}' format changed: '{media_info}'")
+            self.configure_graph(media_info, False)
 
     @Slot(str, object)
     def on_data_received(self, port, data):
+        if self.sender() != self._view_model:
+            return
+
         LOGGER.debug(f"Port '{port}' received {len(data)} samples")
         self._update_perf.mark_start()
 
