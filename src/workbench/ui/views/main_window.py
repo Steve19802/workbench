@@ -1,5 +1,7 @@
+import base64
 from ..theme import Theme
 from typing import cast
+from PySide6.QtCore import QByteArray
 from PySide6.QtGui import QAction, QCloseEvent
 from PySide6.QtWidgets import (
     QApplication,
@@ -29,6 +31,37 @@ class MainWindow(FramelessMainWindow, CustomMainWindow):
         self._theme_controller = Theme()
         super().__init__(parent)
 
+        self.menuFile = QMenu("&File")
+        self.menubar.addAction(self.menuFile.menuAction())
+
+        # Create Actions for File Menu
+        new_action = QAction("&New", self)
+        new_action.setShortcut("Ctrl+N")
+        new_action.setStatusTip("Create a new document")
+        new_action.triggered.connect(self._new_document)
+
+        open_action = QAction("&Open...", self)
+        open_action.setShortcut("Ctrl+O")
+        open_action.setStatusTip("Open an existing document")
+        open_action.triggered.connect(self._open_document)
+
+        save_action = QAction("&Save...", self)
+        save_action.setShortcut("Ctrl+S")
+        save_action.setStatusTip("Save existing document")
+        save_action.triggered.connect(self._save_document)
+
+        exit_action = QAction("E&xit", self)
+        exit_action.setShortcut("Ctrl+Q")
+        exit_action.setStatusTip("Exit the application")
+        exit_action.triggered.connect(self.close) # Connects to QMainWindow's close method
+
+        # Add Actions to File Menu
+        self.menuFile.addAction(new_action)
+        self.menuFile.addAction(open_action)
+        self.menuFile.addAction(save_action)
+        self.menuFile.addSeparator() # Adds a separator line
+        self.menuFile.addAction(exit_action)
+        
         self.menuView = QMenu("&View")
         self.menubar.addAction(self.menuView.menuAction())
         self.toolBar = self.toolbar
@@ -50,6 +83,8 @@ class MainWindow(FramelessMainWindow, CustomMainWindow):
             QtAds.CDockManager.TabCloseButtonIsToolButton, True
         )
         QtAds.CDockManager.setConfigFlag(QtAds.CDockManager.DisableTabTextEliding, True)
+
+        QtAds.CDockManager.setConfigFlag(QtAds.CDockManager.EqualSplitOnInsertion, True)
 
         dock_container_widget = QWidget(self)
         dock_container_widget.setObjectName("dockContainer")
@@ -168,6 +203,29 @@ class MainWindow(FramelessMainWindow, CustomMainWindow):
         self.list_windows()
         self.dock_manager.deleteLater()
         super().closeEvent(event)
+
+    def _new_document(self):
+        pass
+
+    def _open_document(self):
+        main_window_data = self.node_editor.open_graph()
+
+        current_geometry = main_window_data.get('geometry', '')
+        current_state = main_window_data.get('current_state', '')
+
+        self.restoreGeometry(QByteArray(base64.b64decode(current_geometry)))
+        self.restoreState(QByteArray(base64.b64decode(current_state)))
+
+    def _save_document(self):
+        current_geometry = self.saveGeometry().toBase64().data().decode('utf-8')
+        current_state = self.saveState().toBase64().data().decode('utf-8')
+
+        main_window_data = {
+            'geometry': current_geometry,
+            'state': current_state
+        }
+
+        self.node_editor.save_graph(main_window_data=main_window_data)
 
     def list_windows(self):
         """Gets and prints the list of all top-level windows."""
