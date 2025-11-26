@@ -10,10 +10,6 @@ LOGGER = logging.getLogger(__name__)
 
 
 class Block:
-    property_changed = Signal()
-    data_received = Signal()
-    input_format_changed = Signal()
-
     class BlockState(Enum):
         STOPPED = 1
         STARTED = 2
@@ -24,6 +20,9 @@ class Block:
         self._output_ports = {}
         self._state = Block.BlockState.STOPPED
         self._state_lock = Lock()
+        self.property_changed = Signal()
+        self.data_received = Signal()
+        self.input_format_changed = Signal()
 
     def get_output_ports(self) -> list[str]:
         return list(self._output_ports.keys())
