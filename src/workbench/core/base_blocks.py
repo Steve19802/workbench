@@ -15,7 +15,8 @@ class Block:
         STARTED = 2
 
     def __init__(self, name: str) -> None:
-        self.name = name
+        self._id = hex(id(self))
+        self._name = name
         self._input_ports = {}
         self._output_ports = {}
         self._state = Block.BlockState.STOPPED
@@ -23,6 +24,23 @@ class Block:
         self.property_changed = Signal()
         self.data_received = Signal()
         self.input_format_changed = Signal()
+
+    @property
+    def id(self):
+        """The id property."""
+        return self._id
+    @id.setter
+    def id(self, value):
+        self._id = value
+
+    @property
+    def name(self) -> str:
+        """The name property."""
+        return self._name
+    
+    @name.setter
+    def name(self, value: str):
+        self._name = value
 
     def get_output_ports(self) -> list[str]:
         return list(self._output_ports.keys())
