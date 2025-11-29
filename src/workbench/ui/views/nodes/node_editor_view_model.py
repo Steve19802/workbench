@@ -28,7 +28,7 @@ class NodeEditorViewModel(QObject):
         self.engine.stop()
         self.engine_state_changed.emit(False)
 
-    def save_graph(self, file_path="test_graph.json", main_window_data=None):
+    def save_graph(self, file_path, main_window_data=None):
         """
         Orchestrates saving: merges Backend logic with Frontend layout.
         """
@@ -65,7 +65,7 @@ class NodeEditorViewModel(QObject):
         #dic = self.engine.serialize()
         #self.engine.deserialize(dic)
     
-    def open_graph(self, file_path="test_graph.json"):
+    def open_graph(self, file_path):
         """
         Orchestrates loading: Restores Backend first, then attaches Frontend.
         """

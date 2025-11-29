@@ -6,6 +6,7 @@ from PySide6.QtGui import QAction, QCloseEvent
 from PySide6.QtWidgets import (
     QApplication,
     QComboBox,
+    QFileDialog,
     QInputDialog,
     QMenu,
     QSizePolicy,
@@ -208,7 +209,11 @@ class MainWindow(FramelessMainWindow, CustomMainWindow):
         pass
 
     def _open_document(self):
-        main_window_data = self.node_editor.open_graph()
+        file_path, _ = QFileDialog.getOpenFileName(self, "Open Graph", "", "JSON Files (*.json)")
+        if not file_path:
+            return
+
+        main_window_data = self.node_editor.open_graph(file_path)
 
         current_geometry = main_window_data.get('geometry', '')
         current_state = main_window_data.get('current_state', '')
@@ -217,6 +222,10 @@ class MainWindow(FramelessMainWindow, CustomMainWindow):
         self.restoreState(QByteArray(base64.b64decode(current_state)))
 
     def _save_document(self):
+        file_path, _ = QFileDialog.getSaveFileName(self, "Save Graph", "", "JSON Files (*.json)")
+        if not file_path:
+            return
+
         current_geometry = self.saveGeometry().toBase64().data().decode('utf-8')
         current_state = self.saveState().toBase64().data().decode('utf-8')
 
@@ -225,7 +234,7 @@ class MainWindow(FramelessMainWindow, CustomMainWindow):
             'state': current_state
         }
 
-        self.node_editor.save_graph(main_window_data=main_window_data)
+        self.node_editor.save_graph(file_path, main_window_data=main_window_data)
 
     def list_windows(self):
         """Gets and prints the list of all top-level windows."""
@@ -253,3 +262,6 @@ class MainWindow(FramelessMainWindow, CustomMainWindow):
                 f"- {window.size()} - {window.geometry()}"
             )
         print("---------------------------------")
+
+
+
