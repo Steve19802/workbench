@@ -101,16 +101,19 @@ Adding a new, fully functional block (e.g., a "Filter") involves creating three 
 #### Step 1: Create the Model (`core/blocks/filter_block.py`)
 
 This is the backend logic. It inherits from `Block` and implements the core functionality.
+Thanks to the `register_block` and `define_ports` decorators, creating a new block is as simple as this:
 
 ```python
 # src/workbench/core/blocks/filter_block.py
 from ..block_base import Block
+from ..helpers.registry import register_block
+from ..helpers.define_port_decorator import define_ports
 
+@register_block
+@define_ports(inputs=["in"], outputs=["out"])
 class FilterBlock(Block):
     def __init__(self, name: str):
         super().__init__(name)
-        self.add_input_port("in")
-        self.add_output_port("out")
         self._cutoff_freq = 1000.0 # An internal state property
 
     @property
