@@ -2,6 +2,9 @@ import logging
 import shiboken6
 import PySide6QtAds as Ads
 from ..core.blocks import SignalGenerator, AudioCapture, Scope, FFTAnalyzer, FrequencyResponse, CurveSmoother, OctaveSmoother, SpectralDenoiser
+from ..core.blocks.itu_filter import ITUFilterBlock
+# from ..core.blocks.rf_gen_blocks import PanasonicRFGenerator
+
 from .viewmodels import NodeViewModel, ScopeViewModel
 from .views.widgets import ScopeWidget
 
@@ -62,6 +65,10 @@ class NodeFactory:
             return OctaveSmoother(name=name)
         elif identifier == "Utils.SpectralDenoiserNode":
             return SpectralDenoiser(name=name)
+        elif identifier == 'Filter.ITUFilterNodeView':
+            return ITUFilterBlock(name=name)
+        # elif identifier == "CustomBlocks.RFGeneratorNode":
+        #     return PanasonicRFGenerator(name=name)
 
         return None
 
