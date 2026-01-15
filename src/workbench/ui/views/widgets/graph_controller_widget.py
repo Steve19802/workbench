@@ -34,6 +34,7 @@ from .control_panel_widget import ControlPanelWidget
 from .scale_control_widget import ScaleControlWidget
 from workbench.utils import PerformanceMonitorService
 from .dynamic_flow_layout import DynamicFlowLayout
+from .measurements_panel import MeasurementsPanel
 
 LOGGER = logging.getLogger(__name__)
 
@@ -144,6 +145,16 @@ class GraphControllerWidget(QWidget):
         # self._y_scale_controller_view = ScaleControllerView(self._y_scale_controller)
 
         self._flow_layout.setCentralWidget(self._plot_container)
+        # self._flow_layout.setSideWidget(self._control_panel)
+        
+        #------------------
+
+        self._control_panel = ControlPanelWidget(self)
+        self._measure_panel = MeasurementsPanel(parent=self._control_panel)
+
+        self._control_panel.addControlWidget(self._measure_panel)
+        self._control_panel.setOrientation(Qt.Orientation.Horizontal)
+
         self._flow_layout.setSideWidget(self._control_panel)
 
         self._create_toolbar()
@@ -242,6 +253,11 @@ class GraphControllerWidget(QWidget):
         self._cursor2.update_channels()
 
         self._legend.update(linked_curves=self._curves)
+
+        self._measure_panel.set_channels([media_info.channels[i].name for i in self._active_channels])
+
+        if 'format' in media_info.metadata:
+            self._measure_panel.set_format(media_info.metadata.get('format'))
 
         # self._main_layout.addWidget(self._cursor1.create_panel(), 1, 4)
         # self._main_layout.addWidget(self._cursor2.create_panel(), 2, 4)
@@ -489,6 +505,8 @@ class GraphControllerWidget(QWidget):
         self._plot.setLimits(xMin=np.min(x_data), xMax=np.max(x_data))
 
         self._update_perf.mark_stop()
+
+        self._measure_panel.update_data(x_data, y_data)
 
     @Slot("QList<int>")
     def set_channel_filter(self, channels_indices):

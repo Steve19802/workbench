@@ -73,10 +73,13 @@ class FFTAnalyzer(Block):
         output_media_info.metadata["audio_samplerate"] = input_media_info.samplerate
         output_media_info.metadata['nyquist'] = input_media_info.samplerate / 2.0
 
+        output_media_info.metadata['format'] = 'abs'
         # Set format for all output ports
         self.set_port_format("out-abs-peak", output_media_info)
-        self.set_port_format("out-db-peak", output_media_info.copy())
         self.set_port_format("out-abs-rms", output_media_info.copy())
+
+        output_media_info.metadata['format'] = 'db'
+        self.set_port_format("out-db-peak", output_media_info.copy())
         self.set_port_format("out-db-rms", output_media_info.copy())
 
     def _create_buffer(self):
