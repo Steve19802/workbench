@@ -5,6 +5,7 @@ import sys
 import glob
 
 LOGGER = logging.getLogger(__name__)
+LOGGER.setLevel("DEBUG")
 
 class GPIBConnection:
     def __init__(self, port : str = None, gpib_address=None, baudrate=9600, timeout=1):
@@ -53,7 +54,50 @@ class GPIBConnection:
         if self.ser:
             self._gpib_write(f'++addr {value}')
 
-    def gpib_connect(self) -> bool:
+    def _gpib_write(self, command):
+        if self.ser:
+            self.ser.write((command + '\n').encode())
+
+    def gpib_send_command(self, command):
+        """Envía un comando GPIB al instrumento"""
+        LOGGER.debug(f"{self.name}: sending GPIB command \"{command}\"")
+        self._gpib_write(command)
+
+    def gpib_query(self, command):
+        """Envía un comando y lee la respuesta"""
+        LOGGER.debug(f"{self.name}: sending GPIB query \"{command}\"")
+        self._gpib_write(command)
+        self._gpib_write('++read eoi')
+        time.sleep(0.2)
+        response = self.ser.readline().decode().strip()
+        LOGGER.debug(f"{self.name}: GPIB responded \"{response}\"")
+        return response
+
+    # def set_gpib_address(self, address):
+    #     self.gpib_address = address
+    #     self._gpib_write(f'++addr {address}')
+    
+    def scan_gpib_addresses(self, start=0, end=30, test_command='*IDN?'):
+        """Scan GPIB addressed, returns the first one that responds"""
+        LOGGER.info(f"{self.name}: Scanning GPIB addreses")
+        # save = self.ser.timeout
+        # self.ser.timeout = 0.2
+        for addr in range(start, end + 1):
+            LOGGER.debug(f"{self.name}: Trying GPIB address {addr}")
+            self.gpib_address = addr
+            # self._gpib_write(test_command)
+            # self._gpib_write('++read eoi')
+            # time.sleep(0.2)
+            # response = self.ser.readline().decode().strip()
+            response = self.gpib_query(test_command)
+            # LOGGER.debug(f"{self.name}: Responded {response}")
+            if response:
+                # self.ser.timeout = save
+                return addr, response
+        # self.ser.timeout = save
+        return -1, -1
+    
+    def gpib_connect(self, scan_gpib:bool) -> bool:
         """
         Connects to the previously defined GPIB address through the previously specified USB port.
         Returns:
@@ -70,54 +114,28 @@ class GPIBConnection:
                 LOGGER.error(f"Unable to connecto to port {self.port}")
                 return False
             
-            if self.gpib_address is None:
-                LOGGER.error(f"{self.name}: USB connection established, but GPIB address not defined.")
+            if scan_gpib:
+                LOGGER.info(f"{self.name}: Scanning addresses")
+                scanned_address, _ = self.scan_gpib_addresses()
+                if scanned_address == -1:
+                    LOGGER.error(f"No GPIB address responded")
+                    return False
+                # else:
+                #     self._gpib_address = scanned_address
+                    
+            response = self.gpib_query('*IDN?')
+            if response == "": 
+                LOGGER.error("Selected GPIB address not responding")
                 return False
-            else:
-                LOGGER.info(f"{self.name}: Connecting to GPIB address {self.gpib_address} through port {self.port}")
-                self._gpib_write('++mode 1')       # Modo controlador
-                self._gpib_write('++auto 0')       # Lectura manual
-                self._gpib_write(f'++addr {self.gpib_address}')  # Dirección GPIB
-                return True
+            
+            LOGGER.info(f"{self.name}: Connecting to GPIB address {self.gpib_address} through port {self.port}")
+            self._gpib_write('++mode 1')       # Modo controlador
+            self._gpib_write('++auto 0')       # Lectura manual
+            self._gpib_write(f'++addr {self.gpib_address}')  # Dirección GPIB
+            return True
         else:
             LOGGER.error(f"No port selected")
             return False
-
-    def _gpib_write(self, command):
-        if self.ser:
-            self.ser.write((command + '\n').encode())
-
-    def gpib_send_command(self, command):
-        """Envía un comando GPIB al instrumento"""
-        LOGGER.debug(f"{self.name}: sending GPIB command \"{command}\"")
-        self._gpib_write(command)
-
-    def gpib_query(self, command):
-        """Envía un comando y lee la respuesta"""
-        LOGGER.debug(f"{self.name}: sending GPIB query \"{command}\"")
-        self._gpib_write(command)
-        self._gpib_write('++read eoi')
-        response = self.ser.readline().decode().strip()
-        LOGGER.debug(f"{self.name}: GPIB responded \"{command}\"")
-        return response
-
-    # def set_gpib_address(self, address):
-    #     self.gpib_address = address
-    #     self._gpib_write(f'++addr {address}')
-    
-    def scan_gpib_addresses(self, start=0, end=30, test_command='*IDN?'):
-        """Scan GPIB addressed, returns the first one that responds"""
-        LOGGER.info(f"{self.name}: Scanning GPIB addreses")
-        for addr in range(start, end + 1):
-            LOGGER.debug(f"{self.name}: Trying GPIB address {addr}")
-            self.gpib_address = addr
-            self._gpib_write(test_command)
-            self._gpib_write('++read eoi')
-            time.sleep(0.2)
-            response = self.ser.readline().decode().strip()
-            if response:
-                return (addr, response)
-        return (-1, -1)
 
     def close(self):
         if self.ser:

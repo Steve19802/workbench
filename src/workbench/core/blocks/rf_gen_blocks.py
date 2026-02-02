@@ -1,16 +1,19 @@
-from __future__ import annotations
+# from __future__ import annotations
 import logging
 from enum import Enum
+from threading import Lock
 from workbench.contracts.enums import RadioModes, StereoModes
-from workbench.core.base_blocks import Block
-from workbench.core.helpers.gpib_connection import GPIBConnection
+from ..base_blocks import Block
+from ..helpers.gpib_connection import GPIBConnection
 from ..helpers.registry import register_block
 from ..helpers.define_port_decorator import define_ports
 
 LOGGER = logging.getLogger(__name__)
+LOGGER.setLevel("DEBUG")
 
 @register_block
-@define_ports(["config"])
+#NOTE: An output is added so the block is registered as producer and on_start() works
+@define_ports(["config"], [""])
 class PanasonicRFGenerator(Block):
     """
     Generic class to control Panasonic RF generators via GPIB.
@@ -82,42 +85,17 @@ class PanasonicRFGenerator(Block):
             "EMF": "EM"
         }
     }
-
-    # class RFModes(Enum):
-    #     AM='AM'
-    #     FM='FM'
-
-    # class RFStereoModes(Enum):
-    #     MONO = "MONO",
-    #     L_R= "L=R",
-    #     L = "L",
-    #     R = "R",
-    #     L_nR = "L=-R"
         
-    def __init__(self, name:str, com_port:str = None, _gpib_address = None, gen_model="vp-8120a"):
+    def __init__(self, name:str):
         super().__init__(name)
-        self._com_port = com_port
-        self._gpib_address = _gpib_address
+        self._com_port = None
+        self._gpib_address = None
         self.connection = GPIBConnection()
-        # # self.connection.gpib_connect()
-        # self.isConnected = False
-
-        # if _gpib_address==None:
-        #     scanned_address = self.connection.scan_gpib_addresses()[0]
-        #     self.connection.gpib_address = scanned_address
-        #     if scanned_address == -1:
-        #         LOGGER.error(f"{gen_model}: No GPIB address responded")
-        #         self.isConnected = False
-        #     else:
-        #         self.isConnected = True
-        # else:
-        #     self.connection.gpib_address=_gpib_address
-        #     self.isConnected = True
         
-        self.gen_model = gen_model.lower()
-        if self.gen_model not in self.model_specs:
-            LOGGER.error(f"Modelo no soportado: {gen_model}")
-        self.specs = self.model_specs[self.gen_model]
+        self._generator_model = "vp-8174a"
+        if self._generator_model not in self.model_specs:
+            LOGGER.error(f"Modelo no soportado: {self._generator_model}")
+        self.specs = self.model_specs[self._generator_model]
 
         self._mode: RadioModes = None
         self._frequency_mhz = None
@@ -127,22 +105,25 @@ class PanasonicRFGenerator(Block):
         self._stereo_mode: StereoModes = None
         self._output_unit = None
         self._pilot_level = None
+        self.find_gpib_address : bool = True
+
+        self._lock = Lock()
 
         # self.add_output_port("RF_out")
 
     @property
-    def gen_model(self) -> str:
-        return self._gen_model
+    def generator_model(self) -> str:
+        return self._generator_model
     
-    @gen_model.setter
-    def gen_model(self, model:str):
+    @generator_model.setter
+    def generator_model(self, model:str):
         model_low = model.lower()
         if model_low not in self.model_specs:
             LOGGER.error(f"Modelo no soportado: {model_low}")
         else:
-            self._gen_model = model_low
+            self._generator_model = model_low
             self.specs = self.model_specs[model_low]
-            self.on_property_changed("gen_model", model_low)
+            self.on_property_changed("generator_model", model_low)
 
     @property
     def com_port(self) -> str:
@@ -150,8 +131,11 @@ class PanasonicRFGenerator(Block):
     
     @com_port.setter
     def com_port(self, newport: str):
-        self.connection.port = newport
-        self._com_port = newport
+        with self._lock:
+            self.connection.port = newport
+            self._com_port = newport
+            self.on_property_changed("com_port", newport)
+
 
     @property
     def gpib_address(self) -> str:
@@ -159,8 +143,9 @@ class PanasonicRFGenerator(Block):
     
     @gpib_address.setter
     def gpib_address(self, newaddress):
-        self.connection.gpib_address = newaddress
-        self._gpib_address = newaddress
+        with self._lock:
+            self.connection.gpib_address = newaddress
+            self._gpib_address = newaddress
 
     @property
     def mode(self) -> RadioModes:
@@ -168,24 +153,25 @@ class PanasonicRFGenerator(Block):
     
     @mode.setter
     def mode(self, nmode: RadioModes) -> None:
-        if nmode != self.mode:
-            LOGGER.info(f"Setting RF mode to {nmode.value}")
-            if nmode is RadioModes.AM:
-                if self.specs["amfm_turn_onoff"]!="":
-                    self.connection.gpib_send_command(f"FM{self.specs["amfm_turn_onoff"][1]}")
-                    self.connection.gpib_send_command(f"AM{self.specs["amfm_turn_onoff"][0]}")
-                else:
-                    self.connection.gpib_send_command("AM")
-            elif nmode is RadioModes.FM:
-                if self.specs["amfm_turn_onoff"]!="":
-                    self.connection.gpib_send_command(f"AM{self.specs["amfm_turn_onoff"][1]}")
-                    self.connection.gpib_send_command(f"FM{self.specs["amfm_turn_onoff"][0]}")
-                else:
-                    self.connection.gpib_send_command("FM")
+        with self._lock:
+            if nmode != self.mode:
+                LOGGER.info(f"Setting RF mode to {nmode}")
+                if nmode is RadioModes.AM:
+                    if self.specs["amfm_turn_onoff"]!="":
+                        self.connection.gpib_send_command(f"FM{self.specs["amfm_turn_onoff"][1]}")
+                        self.connection.gpib_send_command(f"AM{self.specs["amfm_turn_onoff"][0]}")
+                    else:
+                        self.connection.gpib_send_command("AM")
+                elif nmode is RadioModes.FM:
+                    if self.specs["amfm_turn_onoff"]!="":
+                        self.connection.gpib_send_command(f"AM{self.specs["amfm_turn_onoff"][1]}")
+                        self.connection.gpib_send_command(f"FM{self.specs["amfm_turn_onoff"][0]}")
+                    else:
+                        self.connection.gpib_send_command("FM")
 
-            # LOGGER.debug(f"ARE YOU HERE????? {nmode}")
-            self._mode = nmode
-        self.on_property_changed("mode", nmode.value)
+                # LOGGER.debug(f"ARE YOU HERE????? {nmode}")
+                self._mode = nmode
+            self.on_property_changed("mode", nmode)
 
     @property
     def frequency_mhz(self) -> float:
@@ -193,13 +179,14 @@ class PanasonicRFGenerator(Block):
 
     @frequency_mhz.setter
     def frequency_mhz(self, mhz) -> None:
-        if not self.range_check(mhz, self.specs["freq_range"]):
-            LOGGER.info(f"{self.name}: Frequency out of range, choosing closest value {mhz}")
-        formatted = self.specs["freq_format"].format(mhz)
-        unit = self.specs["freq_unit"]
-        self.connection.gpib_send_command(f"FR{formatted}{unit}")
-        self._frequency_mhz = mhz
-        self.on_property_changed("frequency_mhz", mhz)
+        with self._lock:
+            if not self.range_check(mhz, self.specs["freq_range"]):
+                LOGGER.info(f"{self.name}: Frequency out of range, choosing closest value {mhz}")
+            formatted = self.specs["freq_format"].format(mhz)
+            unit = self.specs["freq_unit"]
+            self.connection.gpib_send_command(f"FR{formatted}{unit}")
+            self._frequency_mhz = mhz
+            self.on_property_changed("frequency_mhz", mhz)
 
     @property
     def fm_deviation(self) -> float:
@@ -259,7 +246,6 @@ class PanasonicRFGenerator(Block):
         self._stereo_mode = StereoModes(smode)
         self.on_property_changed("stereo_mode", smode.upper())
 
-
     @property
     def pilot_level(self) -> float:
         return self._pilot_level
@@ -285,29 +271,14 @@ class PanasonicRFGenerator(Block):
 
         If connection was succsessfull, _isConnected_ is set to _True_
         """
-        #TODO: terminar esta funcion. Pensar bien como sera la parte de la coneccion
-        self.connection.port = self.com_port
-        self.connection.gpib_address = self.gpib_address
-        if not self.connection.gpib_connect():
-            self.isConnected = False
-        else:
-            response = self.connection.gpib_query('*IDN?')
-            if response == "": 
-                LOGGER.error("{self.name}: Selected GPIB address not responding")
-                self.isConnected = False
-            else: 
-                self.isConnected = True
-            # if self.gpib_address==None:
-            #     scanned_address = self.connection.scan_gpib_addresses()[0]
-            #     self.connection.gpib_address = scanned_address
-            #     if scanned_address == -1:
-            #         LOGGER.error(f"{self.gen_model}: No GPIB address responded")
-            #         self.isConnected = False
-            #     else:
-            #         self.isConnected = True
-            # else:
-            #     self.connection.gpib_address=self.gpib_address
-            #     self.isConnected = True
+        # self.connection.port = self.com_port
+        with self._lock:
+            LOGGER.info(f"{self.name}: Connecting to generator")
+            if self.connection.gpib_connect(self.find_gpib_address):
+                return True
+            else:
+                self.close()
+                return False
 
     def store_preset(self, address):
         if not (0 <= address <= 99):
@@ -334,6 +305,16 @@ class PanasonicRFGenerator(Block):
             return False
         else: return True
     
+    def on_start(self):
+        return self.connect_to_generator()
+    
+    def on_stop(self):
+        self.close()
+        return True
+    
+    def on_property_changed(self, name, value):
+        return super().on_property_changed(name, value)
+
 
 
 
