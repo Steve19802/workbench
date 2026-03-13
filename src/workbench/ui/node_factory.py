@@ -70,7 +70,7 @@ class NodeFactory:
             return ITUFilterBlock(name=name)
         elif identifier == 'Mirgor.InfotainmentNode':
             return InfotainmentDeviceBlock(name=name)
-        elif identifier == "CustomBlocks.RFGeneratorNode":
+        elif identifier == "Mirgor.RFGeneratorNode":
             return PanasonicRFGenerator(name=name)
 
         return None

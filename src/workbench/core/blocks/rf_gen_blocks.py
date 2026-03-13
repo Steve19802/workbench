@@ -2,6 +2,7 @@
 import logging
 from enum import Enum
 from threading import Lock
+import json
 from workbench.contracts.enums import RadioModes, StereoModes
 from ..base_blocks import Block
 from ..helpers.gpib_connection import GPIBConnection
@@ -314,6 +315,30 @@ class PanasonicRFGenerator(Block):
     
     def on_property_changed(self, name, value):
         return super().on_property_changed(name, value)
+
+    def on_input_received(self, port_name, data):
+        super().on_input_received(port_name, data)
+        try:
+            cfg = json.loads(data)
+        except json.JSONDecodeError:
+            pass
+        
+        #TODO: add config parser
+        mode = cfg.get("mode")
+        freq = cfg.get("frequency")
+        modulation = cfg.get("modulation")
+        out_level = cfg.get("amplitude")
+        out_unit = cfg.get("amplitude format")
+
+        # if mode != None:
+        #     self.mode = mode
+        if freq != None:
+            self.frequency_mhz = freq
+        if modulation != None:
+            self.modulation = modulation
+        if (out_level != None) and (out_unit != None):
+            self.output_level = (out_level, out_unit)
+        
 
 
 

@@ -8,7 +8,7 @@ from workbench.core.blocks.rf_gen_blocks import PanasonicRFGenerator
 LOGGER = logging.getLogger(__name__)
 
 class RFGeneratorNode(BaseNode):
-    __identifier__ = 'CustomBlocks'
+    __identifier__ = 'Mirgor'
     NODE_NAME = 'Panasonic RF Generator'
 
     def __init__(self):
@@ -205,7 +205,7 @@ class RFGeneratorNode(BaseNode):
 # NOTE: Tried with CUSTOM_PARAMETERS but couldn't make QDOUBLESPINBOX to work 
 # (loses actual value somewhere and tries to do setValue(NoneType))
 class RFGeneratorNode2(BaseNode):
-    __identifier__ = 'CustomBlocks'
+    __identifier__ = 'Mirgor'
     NODE_NAME = 'Panasonic RF Generator'
     supp_models = list(PanasonicRFGenerator.model_specs.keys())
     
