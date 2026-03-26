@@ -115,17 +115,33 @@ class ProcessingEngine:
                 f"Engine: Disconnecting '{source_id}:{source_port}' to '{dest_id}:{dest_port}'"
             )
             in_port.disconnect()
-
+    
     def start(self):
         LOGGER.debug("Starting processing engine")
+
         if self._is_running:
-            LOGGER.warning("Engine already runnig")
+            LOGGER.warning("Engine already running")
             return
 
+        started = []
+
         for producer in self._producers:
-            producer.start()
+            ok = producer.start()
+
+            if not ok:
+                LOGGER.error("Producer %s failed to start", getattr(producer, "name", producer))
+
+                for p in reversed(started):
+                    p.stop()
+                    #NOTE: DB: Verify if it actually stopped?
+
+                self._is_running = False
+                return
+
+            started.append(producer)
 
         self._is_running = True
+        return
 
     def stop(self):
         LOGGER.debug("Stopping processing engine")
