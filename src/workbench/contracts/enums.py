@@ -33,3 +33,14 @@ class SignalType(str,Enum):
     SINE = "Sine"
     PINK_NOISE = "Pink Noise"
     MULTI_TONE = "Multi-tone"
+
+class RadioModes(Enum):
+    AM='AM'
+    FM='FM'
+
+class StereoModes(Enum):
+    MONO = "MONO"
+    STEREO= "L=R"
+    LEFT_ONLY = "L"
+    RIGHT_ONLY = "R"
+    INVERTED_STEREO = "L=-R"

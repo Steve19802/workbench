@@ -21,6 +21,9 @@ from . import nodes
 from .nodes.node_editor_view_model import NodeEditorViewModel
 from ..node_factory import NodeFactory
 
+from .nodes.itu_node_view import ITUFilterNodeView
+# from .nodes.rf_generator_node import RFGeneratorNode
+
 LOGGER = logging.getLogger(__name__)
 BASE_PATH = Path(__file__).parent.resolve()
 
@@ -175,6 +178,9 @@ class NodeEditorWidget(QWidget):
             if inspect.isclass(obj) and issubclass(obj, NodeGraphQt.BaseNode):
                 LOGGER.debug(f"Found class: {name}")
                 self.graph.register_node(obj)
+        self.graph.register_node(ITUFilterNodeView)
+        # self.graph.register_node(RFGeneratorNode)
+
         # self.graph.register_node(SignalGeneratorNode)
         # self.graph.register_node(MediaSourceNode)
         # self.graph.register_node(MediaProcessorNode)

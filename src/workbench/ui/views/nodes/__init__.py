@@ -6,6 +6,8 @@ from .frequency_response_node import FrequencyResponseNode
 from .curve_smoother_node import CurveSmootherNode
 from .octave_smoother_node import OctaveSmootherNode
 from .spectral_denoiser_node import SpectralDenoiserNode
+from .infotainment_node_view import InfotainmentNode
+from .rf_generator_node import RFGeneratorNode
 
 # Initialize a package-level variable
 NODES_VERSION = "1.0.0"
@@ -18,5 +20,7 @@ __all__ = ["AudioCaptureNode",
            "FrequencyResponseNode",
            "CurveSmootherNode",
            "OctaveSmootherNode",
-           "SpectralDenoiserNode"
+           "SpectralDenoiserNode",
+           "InfotainmentNode",
+           "RFGeneratorNode",
            "NODES_VERSION"]

@@ -65,6 +65,12 @@ class ScopeViewModel(NodeViewModel):
 
         self._last_xdata = x_data
         
+    def on_model_property_changed(self, sender, **kwargs):
+        name = kwargs.get("name")
+        value = kwargs.get("value")
+        if name == 'mode':
+            self._dock_widget._graph_controller._measure_panel.set_mode(value)
+        super().on_model_property_changed(sender, **kwargs)
 
     def on_model_data_received(self, sender, **kwargs):
         port_name = kwargs.get("port_name")
